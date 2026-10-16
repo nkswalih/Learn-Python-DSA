@@ -279,6 +279,10 @@ class DoublyLinkedList:
         self.tail = None
         self.size = 0
 
+    # ========================================================
+    #  ADD
+    # ========================================================
+
     # ---- ADD TO THE FRONT — O(1) ----
     def prepend(self, data):
         node = DoublyNode(data)
@@ -301,6 +305,123 @@ class DoublyLinkedList:
             self.tail = node           # tail moves to the new node
         self.size += 1
 
+    # ---- INSERT AT ANY POSITION — front (0), middle, or end (size) ----
+    def insert_at(self, index, data):
+        if index < 0 or index > self.size:
+            raise IndexError("insert_at index out of range")
+        if index == 0:                 # front — reuse prepend
+            self.prepend(data)
+            return
+        if index == self.size:         # end — reuse append
+            self.append(data)
+            return
+
+        cur = self.head
+        for _ in range(index):         # walk to the node currently at 'index'
+            cur = cur.next
+
+        node = DoublyNode(data)
+        prev = cur.prev
+        node.prev = prev               # 1. new node points back
+        node.next = cur                # 2. new node points forward
+        prev.next = node               # 3. previous points to the new node
+        cur.prev = node                # 4. current points back to the new node
+        self.size += 1
+
+    # ========================================================
+    #  REMOVE
+    # ========================================================
+
+    # ---- UNLINK A NODE — O(1). This is the doubly-linked superpower:
+    #      given the node itself, we can remove it without walking from head.
+    def _remove_node(self, node):
+        if node.prev is not None:
+            node.prev.next = node.next
+        else:
+            self.head = node.next      # node was the head
+        if node.next is not None:
+            node.next.prev = node.prev
+        else:
+            self.tail = node.prev      # node was the tail
+        self.size -= 1
+        return node.data
+
+    # ---- REMOVE BY POSITION — O(n) to find, O(1) to unlink ----
+    def delete_at(self, index):
+        if index < 0 or index >= self.size:
+            raise IndexError("delete_at index out of range")
+        return self._remove_node(self._node_at(index))
+
+    # ---- REMOVE FIRST NODE HOLDING A VALUE — O(n) ----
+    def delete_value(self, value):
+        cur = self.head
+        while cur is not None:
+            if cur.data == value:
+                self._remove_node(cur)
+                return True
+            cur = cur.next
+        return False
+
+    def pop_front(self):               # O(1)
+        if self.head is None:
+            raise IndexError("pop_front from empty list")
+        return self._remove_node(self.head)
+
+    def pop_back(self):                # O(1) — we already hold the tail!
+        if self.tail is None:
+            raise IndexError("pop_back from empty list")
+        return self._remove_node(self.tail)
+
+    # ========================================================
+    #  READ / SEARCH
+    # ========================================================
+
+    # ---- JUMP TO A NODE BY INDEX, walking from whichever end is nearer ----
+    def _node_at(self, index):
+        if index < self.size // 2:
+            cur = self.head            # nearer the front: walk forward
+            for _ in range(index):
+                cur = cur.next
+        else:
+            cur = self.tail            # nearer the back: walk backward
+            for _ in range(self.size - 1 - index):
+                cur = cur.prev
+        return cur
+
+    def get(self, index):              # O(n), but from the nearer end
+        if index < 0 or index >= self.size:
+            raise IndexError("get index out of range")
+        return self._node_at(index).data
+
+    def set_at(self, index, value):    # O(n)
+        if index < 0 or index >= self.size:
+            raise IndexError("set_at index out of range")
+        self._node_at(index).data = value
+
+    def search(self, value):           # index of value, or -1 — O(n)
+        cur, i = self.head, 0
+        while cur is not None:
+            if cur.data == value:
+                return i
+            cur = cur.next
+            i += 1
+        return -1
+
+    def contains(self, value):         # O(n)
+        return self.search(value) != -1
+
+    # ========================================================
+    #  OTHER
+    # ========================================================
+
+    # ---- REVERSE IN PLACE — O(n). Swap each node's two links, then swap ends.
+    def reverse(self):
+        cur = self.head
+        while cur is not None:
+            cur.next, cur.prev = cur.prev, cur.next
+            cur = cur.prev              # step to the next node (old 'next')
+        self.head, self.tail = self.tail, self.head
+
     # ---- TRAVERSE FORWARD ----
     def to_list(self):
         result, cur = [], self.head
@@ -316,15 +437,72 @@ class DoublyLinkedList:
             result.append(cur.data)
             cur = cur.prev
         return result
+
+    def clear(self):                   # O(1)
+        self.head = self.tail = None
+        self.size = 0
+
+    def __len__(self):
+        return self.size
+```
+
+### The full operation set at a glance
+
+A doubly linked list earns its extra memory by making these cheap:
+
+| Operation | What it does | Time |
+|---|---|---|
+| `prepend(data)` | add at the front | `O(1)` |
+| `append(data)` | add at the back (needs `tail`) | `O(1)` |
+| `insert_at(i, data)` | add at front / **middle** / back | `O(n)` to reach `i`, `O(1)` to link |
+| `pop_front()` / `pop_back()` | remove an end | `O(1)` |
+| `delete_at(i)` | remove by position | `O(n)` to find, `O(1)` to unlink |
+| `delete_value(v)` | remove first node holding `v` | `O(n)` |
+| `_remove_node(node)` | remove a node **you already hold** | **`O(1)`** |
+| `get(i)` / `set_at(i, v)` | read / update by index | `O(n)` (from nearer end) |
+| `search(v)` / `contains(v)` | find a value | `O(n)` |
+| `reverse()` | reverse in place | `O(n)` |
+| `to_list()` / `to_list_reverse()` | traverse both ways | `O(n)` |
+| `clear()` / `len()` | reset / size | `O(1)` |
+
+**Inserting in the middle — the four links.** To drop a node between `prev` and `cur`, you update four references. Miss one and the list is corrupted:
+
+```
+Before:   prev ⇄ cur
+After:    prev ⇄ node ⇄ cur
+
+node.prev = prev      # new → back
+node.next = cur       # new → forward
+prev.next = node      # back → new
+cur.prev  = node      # forward → back
 ```
 
 ```python
 d = DoublyLinkedList()
-d.append(10)
-d.append(20)
-d.append(30)
-print(d.to_list())          # [10, 20, 30]
-print(d.to_list_reverse())  # [30, 20, 10]   ← backward walk works!
+d.append(10)                  # 10
+d.append(20)                  # 10 ⇄ 20
+d.prepend(5)                  # 5 ⇄ 10 ⇄ 20
+
+d.insert_at(0, 1)             # front  → 1 ⇄ 5 ⇄ 10 ⇄ 20
+d.insert_at(3, 7)             # middle → 1 ⇄ 5 ⇄ 10 ⇄ 7 ⇄ 20
+d.insert_at(len(d), 99)       # end    → ... ⇄ 20 ⇄ 99
+print(d.to_list())            # [1, 5, 10, 7, 20, 99]
+
+print(d.get(2))               # 10        (index read)
+print(d.search(20))           # 4         (value → index)
+d.set_at(0, 100)              # change the first value
+
+d.delete_at(1)                # remove index 1
+d.delete_value(7)             # remove the node holding 7
+print(d.to_list())            # [100, 10, 20, 99]
+
+print(d.pop_front())          # 100       (O(1))
+print(d.pop_back())           # 99        (O(1))
+
+d.reverse()
+print(d.to_list())            # [20, 10]
+print(d.to_list_reverse())    # [10, 20]   ← backward walk works!
+print(len(d))                 # 2
 ```
 
 **Why keep a `tail` pointer?** Without it, `append` has to walk from the head to the end every time (`O(n)`). With `tail`, appending is one step (`O(1)`). Small detail, big difference.
@@ -443,11 +621,15 @@ def delete_first(head, target):
 
 ## 3.11 Tasks (the `linked_list/` folder)
 
-1. **Create and connect nodes by hand** (no class) — build `10 → 20 → 30` and print it.
-2. **Implement a basic singly linked list** with `prepend`, `append`, `find`, `delete`, and `to_list`.
-3. **Implement a basic doubly linked list** with `prepend`, `append`, and both forward and backward traversal.
-4. **Traverse a linked list** and print every value (both classes).
-5. **Insert a node at a given position** in the singly linked list.
+1. **Create and connect nodes by hand** (no class) — build `10 → 20 → 30` and print it. (`node_basics.py`)
+2. **Implement a full singly linked list** (`singly_linked_list.py`): `prepend`, `append`, `insert_at`, `get`, `set_at`, `index_of`, `delete_value`, `delete_at`, `pop_front`, `pop_back`, `reverse`, `to_list`, `clear`.
+3. **Implement a full doubly linked list** (`doubly_linked_list.py`) with **every** operation below, then run it and check each result:
+   - `prepend`, `append`, `insert_at(index, data)` — front, **middle**, and back
+   - `delete_at(index)`, `delete_value(value)`, `pop_front`, `pop_back`
+   - `get(index)`, `set_at(index, value)`, `search(value)`, `contains(value)`
+   - `reverse()`, `to_list()`, `to_list_reverse()`, `clear()`, `len()`
+4. **Traverse a linked list** and print every value (both classes), forward and backward.
+5. **Insert at a given position** and confirm the links by walking forward *and* backward from the new node.
 6. **Reverse a singly linked list** (the classic interview question). It's the traversal pattern with three pointers: `prev`, `cur`, `next`:
    ```python
    def reverse(head):
@@ -462,7 +644,11 @@ def delete_first(head, target):
    ```
    Trace it by hand on `10 → 20 → 30` until you can explain every step.
 7. **Convert** a singly linked list into a doubly linked list, then back — reusing the helper functions above.
-8. **Challenge:** find the **middle** node using two pointers (a "slow" pointer moving one step and a "fast" pointer moving two). When `fast` reaches the end, `slow` is at the middle. This slow/fast trick also detects cycles — worth learning now.
+8. **Find the middle** node with slow/fast pointers (`middle_node.py`). When `fast` reaches the end, `slow` is at the middle.
+9. **Detect a cycle** with slow/fast pointers, and return where it starts (`detect_cycle.py`). If the two pointers meet, there's a loop.
+10. **Merge two sorted lists** into one sorted list using a dummy node (`merge_two_lists.py`).
+11. **Remove the n-th node from the end in one pass** with two pointers kept `n + 1` apart (`remove_nth_from_end.py`).
+12. **Challenge:** re-implement `reverse` **iteratively with no extra memory**, then recursively, and compare the space cost.
 
 ---
 
