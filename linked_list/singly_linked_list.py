@@ -1,8 +1,18 @@
 """
 linked_list/singly_linked_list.py  —  Part 3
 
-A basic singly linked list: each node points to the next.
-Operations: prepend, append, find, delete, insert_at, reverse, to_list.
+A FULL singly linked list. Each node points only forward (next).
+
+Operations included:
+    prepend, append                 add at front / back          O(1) / O(n)
+    insert_at(index)                add at front / middle / back O(n)
+    delete_at(index)                remove by position           O(n)
+    delete_value(value)             remove first matching value  O(n)
+    get(index) / set_at(index)      read / update by index       O(n)
+    index_of(value) / contains      search                       O(n)
+    pop_front / pop_back            remove ends                  O(1) / O(n)
+    reverse()                       reverse in place              O(n)
+    to_list, clear, __len__         helpers                      O(n) / O(1)
 """
 
 
@@ -17,15 +27,19 @@ class SinglyLinkedList:
         self.head = None
         self.size = 0
 
-    # ---- add to the front — O(1) ----
+    # =========================================================
+    #  ADD
+    # =========================================================
+
     def prepend(self, data):
+        """Add at the front — O(1)."""
         node = Node(data)
         node.next = self.head
         self.head = node
         self.size += 1
 
-    # ---- add to the end — O(n) without a tail pointer ----
     def append(self, data):
+        """Add at the back — O(n) (no tail pointer in a singly list)."""
         node = Node(data)
         if self.head is None:
             self.head = node
@@ -36,61 +50,134 @@ class SinglyLinkedList:
             cur.next = node
         self.size += 1
 
-    # ---- search — O(n) ----
-    def find(self, target):
-        cur = self.head
-        while cur is not None:
-            if cur.data == target:
-                return True
-            cur = cur.next
-        return False
-
-    # ---- delete first occurrence of a value — O(n) ----
-    def delete(self, target):
-        if self.head is None:
-            return False
-        if self.head.data == target:           # target is the head
-            self.head = self.head.next
-            self.size -= 1
-            return True
-        cur = self.head
-        while cur.next is not None:
-            if cur.next.data == target:
-                cur.next = cur.next.next       # jump over the target
-                self.size -= 1
-                return True
-            cur = cur.next
-        return False
-
-    # ---- insert at a position — O(n) ----
     def insert_at(self, index, data):
-        if index <= 0:                          # insert at the front
+        """Insert at any position: front (0), middle, or end (size). O(n)."""
+        if index < 0 or index > self.size:
+            raise IndexError("insert_at index out of range")
+        if index == 0:
             self.prepend(data)
             return
         cur = self.head
-        for _ in range(index - 1):
-            if cur is None:
-                raise IndexError("index out of range")
+        for _ in range(index - 1):            # stop at the node BEFORE the gap
             cur = cur.next
-        if cur is None:
-            raise IndexError("index out of range")
         node = Node(data)
         node.next = cur.next
         cur.next = node
         self.size += 1
 
-    # ---- reverse in place — O(n) time, O(1) space ----
+    # =========================================================
+    #  REMOVE
+    # =========================================================
+
+    def delete_value(self, value):
+        """Remove the first node holding value. O(n)."""
+        if self.head is None:
+            return False
+        if self.head.data == value:
+            self.head = self.head.next
+            self.size -= 1
+            return True
+        cur = self.head
+        while cur.next is not None:
+            if cur.next.data == value:
+                cur.next = cur.next.next      # jump over the target
+                self.size -= 1
+                return True
+            cur = cur.next
+        return False
+
+    def delete_at(self, index):
+        """Remove the node at a position. O(n)."""
+        if index < 0 or index >= self.size:
+            raise IndexError("delete_at index out of range")
+        if index == 0:
+            return self.pop_front()
+        cur = self.head
+        for _ in range(index - 1):            # node before the target
+            cur = cur.next
+        removed = cur.next.data
+        cur.next = cur.next.next
+        self.size -= 1
+        return removed
+
+    def pop_front(self):
+        """Remove and return the front item. O(1)."""
+        if self.head is None:
+            raise IndexError("pop_front from empty list")
+        value = self.head.data
+        self.head = self.head.next
+        self.size -= 1
+        return value
+
+    def pop_back(self):
+        """Remove and return the back item. O(n) — must walk to the end."""
+        if self.head is None:
+            raise IndexError("pop_back from empty list")
+        if self.head.next is None:            # only one node
+            value = self.head.data
+            self.head = None
+            self.size -= 1
+            return value
+        cur = self.head
+        while cur.next.next is not None:      # stop at the second-to-last node
+            cur = cur.next
+        value = cur.next.data
+        cur.next = None
+        self.size -= 1
+        return value
+
+    # =========================================================
+    #  READ / SEARCH
+    # =========================================================
+
+    def get(self, index):
+        """Read the value at an index. O(n)."""
+        if index < 0 or index >= self.size:
+            raise IndexError("get index out of range")
+        cur = self.head
+        for _ in range(index):
+            cur = cur.next
+        return cur.data
+
+    def set_at(self, index, value):
+        """Update the value at an index. O(n)."""
+        if index < 0 or index >= self.size:
+            raise IndexError("set_at index out of range")
+        cur = self.head
+        for _ in range(index):
+            cur = cur.next
+        cur.data = value
+
+    def index_of(self, value):
+        """Return the index of the first matching value, or -1. O(n)."""
+        cur = self.head
+        i = 0
+        while cur is not None:
+            if cur.data == value:
+                return i
+            cur = cur.next
+            i += 1
+        return -1
+
+    def contains(self, value):
+        """True if value is present. O(n)."""
+        return self.index_of(value) != -1
+
+    # =========================================================
+    #  OTHER OPERATIONS
+    # =========================================================
+
     def reverse(self):
+        """Reverse in place with three pointers. O(n) time, O(1) space."""
         prev = None
         cur = self.head
         while cur is not None:
-            nxt = cur.next          # save the rest
-            cur.next = prev         # flip the arrow
-            prev = cur              # move prev forward
-            cur = nxt               # move cur forward
-        self.head = prev            # prev is the new head
+            nxt = cur.next
+            cur.next = prev
+            prev = cur
+            cur = nxt
+        self.head = prev
 
-    # ---- traverse into a Python list ----
     def to_list(self):
         out = []
         cur = self.head
@@ -99,25 +186,42 @@ class SinglyLinkedList:
             cur = cur.next
         return out
 
+    def clear(self):
+        self.head = None
+        self.size = 0
+
+    def __len__(self):
+        return self.size
+
+    def __repr__(self):
+        return " -> ".join(str(x) for x in self.to_list())
+
 
 if __name__ == "__main__":
     lst = SinglyLinkedList()
-    lst.prepend(30)
-    lst.prepend(20)
-    lst.prepend(10)              # 10 -> 20 -> 30
-    print("after prepends :", lst.to_list())
+    for v in [10, 20, 30]:
+        lst.append(v)
+    lst.prepend(5)                        # 5 -> 10 -> 20 -> 30
+    print("after adds    :", lst)
 
-    lst.append(40)               # 10 -> 20 -> 30 -> 40
-    print("after append   :", lst.to_list())
+    lst.insert_at(0, 1)                   # front
+    lst.insert_at(2, 7)                   # middle
+    lst.insert_at(len(lst), 99)           # end
+    print("after inserts :", lst)
 
-    lst.insert_at(2, 25)         # 10 -> 20 -> 25 -> 30 -> 40
-    print("after insert@2 :", lst.to_list())
+    print("get(2)        :", lst.get(2))
+    print("index_of(20)  :", lst.index_of(20))
+    lst.set_at(0, 100)
+    print("after set_at  :", lst)
 
-    lst.delete(20)               # 10 -> 25 -> 30 -> 40
-    print("after delete 20:", lst.to_list())
+    print("pop_front     :", lst.pop_front())
+    print("pop_back      :", lst.pop_back())
+    print("after pops    :", lst)
 
-    print("find 30        :", lst.find(30))
+    print("delete_at(1)  :", lst.delete_at(1))
+    print("delete 99?    :", lst.delete_value(99))
+    print("after deletes :", lst)
 
-    lst.reverse()                # 40 -> 30 -> 25 -> 10
-    print("after reverse  :", lst.to_list())
-    print("size           :", lst.size)
+    lst.reverse()
+    print("reversed      :", lst)
+    print("length        :", len(lst))
