@@ -15,6 +15,7 @@ Start here: **[book/README.md](book/README.md)**
 | [Part 5](book/04-searching-and-sorting.md) | Searching & Sorting |
 | [Part 6](book/05-hashing-sets-and-dicts.md) | Hashing, Sets & Dictionaries |
 | [Part 7](book/06-recursion-and-problem-solving.md) | Recursion & Problem Solving |
+| [Part 8](book/07-interview-revision-cheatsheet.md) | Last-Minute Interview Revision |
 
 ## 💻 The code
 
