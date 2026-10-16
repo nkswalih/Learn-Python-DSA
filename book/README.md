@@ -44,6 +44,7 @@ Read in order the first time. After that, jump to whatever you need.
 | [Part 5 — Searching & Sorting](04-searching-and-sorting.md) | Linear & binary search, bubble/selection/insertion sort | Search and sort data and compare the trade-offs |
 | [Part 6 — Hashing, Sets & Dicts](05-hashing-sets-and-dicts.md) | Hash tables, collisions, frequency counting | Turn slow O(n²) code into fast O(n) code |
 | [Part 7 — Recursion & Problem Solving](06-recursion-and-problem-solving.md) | Recursion, the call stack, and how to think through problems | Solve problems you've never seen before |
+| [Part 8 — Last-Minute Interview Revision](07-interview-revision-cheatsheet.md) | Everything compressed: cost tables, tricks, patterns, 60 Q&A | Revise the whole book fast before an interview |
 
 ---
 
